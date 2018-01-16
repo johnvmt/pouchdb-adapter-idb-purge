@@ -1,0 +1,11 @@
+{
+  "name": "pouchdb-adapter-idb-purge",
+  "version": "6.4.1-prerelease",
+  "description": "PouchDB adapter using IndexedDB as its data store.",
+  "main": "./lib/index.js",
+  "keywords": [],
+  "author": "Dale Harvey <dale@arandomurl.com>",
+  "license": "Apache-2.0",
+  "repository": "https://github.com/johnvmt/pouchdb-adapter-idb-purge",
+  "jsnext:main": "./src/index.js"
+}
