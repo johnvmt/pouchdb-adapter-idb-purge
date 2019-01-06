@@ -57,6 +57,45 @@ var openReqList = new Map();
 function IdbPurgePouch(opts, callback) {
 	var api = this;
 
+	api.purge = toPromise(function(docOrId, callback) {
+		var docId = (typeof docOrId == 'object' && typeof docOrId._id != 'undefined') ? docOrId._id : docOrId;
+
+		var stores = [DOC_STORE, BY_SEQ_STORE];
+		var txnResult = openTransactionSafely(idb, stores, 'readwrite');
+		if (txnResult.error)
+			callback(txnResult.error, null);
+		var txn = txnResult.txn;
+
+		var docStore = txn.objectStore(DOC_STORE);
+		var seqStore = txn.objectStore(BY_SEQ_STORE);
+
+		var start = docId + "::";
+		var end = docId + "::~";
+
+		var range = IDBKeyRange.bound(start, end, false, false);
+		var docStoreRequest = docStore.delete(docId);
+
+		docStoreRequest.onsuccess = function(event) {
+			var index = seqStore.index('_doc_id_rev');
+			var range = IDBKeyRange.bound(start, end, false, false);
+			var seqCursor = index.openCursor(range);
+
+			seqCursor.onsuccess = function(event) {
+
+				let result = event.target.result;
+				if(result !== null) {
+					var seqStoreRequest = seqStore.delete(result.primaryKey);
+
+					seqStoreRequest.onsuccess = function() {
+						result.continue();
+					}
+				}
+				else
+					callback(null, {'ok': true});
+			}
+		};
+	});
+
 	enqueueTask(function (thisCallback) {
 		init(api, opts, thisCallback);
 	}, callback, api.constructor);
@@ -290,45 +329,6 @@ function init(api, opts, callback) {
 	}
 
 	api._remote = false;
-
-	api.purge = toPromise(function(docOrId, callback) {
-		var docId = (typeof docOrId == 'object' && typeof docOrId._id != 'undefined') ? docOrId._id : docOrId;
-
-		var stores = [DOC_STORE, BY_SEQ_STORE];
-		var txnResult = openTransactionSafely(idb, stores, 'readwrite');
-		if (txnResult.error)
-			callback(txnResult.error, null);
-		var txn = txnResult.txn;
-
-		var docStore = txn.objectStore(DOC_STORE);
-		var seqStore = txn.objectStore(BY_SEQ_STORE);
-
-		var start = docId + "::";
-		var end = docId + "::~";
-
-		var range = IDBKeyRange.bound(start, end, false, false);
-		var docStoreRequest = docStore.delete(docId);
-
-		docStoreRequest.onsuccess = function(event) {
-			var index = seqStore.index('_doc_id_rev');
-			var range = IDBKeyRange.bound(start, end, false, false);
-			var seqCursor = index.openCursor(range);
-
-			seqCursor.onsuccess = function(event) {
-
-				let result = event.target.result;
-				if(result !== null) {
-					var seqStoreRequest = seqStore.delete(result.primaryKey);
-
-					seqStoreRequest.onsuccess = function() {
-						result.continue();
-					}
-				}
-				else
-					callback(null, {'ok': true});
-			}
-		};
-	});
 
 	api.type = function () {
 		return 'idb-purge';

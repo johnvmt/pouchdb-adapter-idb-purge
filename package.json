@@ -1,6 +1,6 @@
 {
   "name": "pouchdb-adapter-idb-purge",
-  "version": "7.0.0",
+  "version": "7.0.1",
   "description": "PouchDB adapter using IndexedDB as its data store, adding a purge function",
   "keywords": [],
   "author": "John Murphy-Teixidor <johnvmt@gmail.com>",
